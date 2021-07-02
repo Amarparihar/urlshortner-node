@@ -30,7 +30,7 @@ app.get("/",async(req,res)=>{
     try {
         let client = await MongoClient.connect(URL);
         let db = client.db(DB);
-        let data = db.collection('users').find().toArray();
+        let data = await db.collection('users').find().toArray();
         if(data){
             res.status(200).json(data);
         }else{
