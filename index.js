@@ -26,6 +26,24 @@ const transporter = nodeMailer.createTransport({
     }
 });
 
+app.get("/",async(req,res)=>{
+    try {
+        let client = await MongoClient.connect(URL);
+        let db = client.db(DB);
+        let data = db.collection('users').find().toArray();
+        if(data){
+            res.status(200).json(data);
+        }else{
+            res.status(404).json({message:"Data Not Found"});
+        }
+       await client.close();
+        
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(500);
+    }
+})
+
 app.post("/register", async(req,res)=>{
     try {
         let client = await MongoClient.connect(URL);
@@ -37,13 +55,13 @@ app.post("/register", async(req,res)=>{
             req.body.password = hash;
             await db.collection('users').insertOne(req.body);
             res.status(200).json({message:"user registered successfully"});
-           await client.close();
+           
 
         }else{
             res.status(404).json({message:"user already registered"});
         }
 
-        
+        await client.close();
     } catch (error) {
         console.log(error);
         res.sendStatus(500);
@@ -61,7 +79,7 @@ app.post("/login", async(req,res)=>{
                 let token = jwt.sign({user_id:data._id},process.env.JWT_KEY);
                 console.log(token);
                 res.status(200).json({message:"Login Successful",token});
-                await client.close();
+                
             }else{
                 res.status(401).json({message:"Invalid Creadentials"})
             }
@@ -69,6 +87,7 @@ app.post("/login", async(req,res)=>{
         }else{
             res.status(404).json({message:"user not registered"});
         }
+        await client.close();
         
     } catch (error) {
         console.log(error);
@@ -97,12 +116,13 @@ app.post('/forgot-password', async(req,res)=>{
                 if(err) throw err;
                 console.log(info);
             })
-            await client.close();
+           
             
         }else{
             res.status(404).json({message:'Insert valid email address'});
         }
         
+        await client.close();
     } catch (error) {
         console.log(error);
         res.sendStatus(500);
@@ -124,7 +144,7 @@ app.put('/update-password', async(req,res)=>{
                 
                 await db.collection('users').findOneAndUpdate({email:req.body.email},{$set:{password:req.body.password}});
             res.status(200).json({message:'Password Updated'});
-            await client.close();
+            
             }else{
                 res.status(401).json({message:'Enter valid password'})
             }
@@ -132,7 +152,7 @@ app.put('/update-password', async(req,res)=>{
         }else{
             res.status(404).json({message:'Enter valid email'})
         }
-        
+        await client.close();
     } catch (error) {
         console.log(error);
         res.sendStatus(500);
