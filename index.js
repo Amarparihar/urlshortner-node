@@ -109,7 +109,7 @@ app.post('/forgot-password', async(req,res)=>{
                 from: 'pariharamar1079@gmail.com', // sender address
                 to: data.email, // list of receivers
                 subject: 'Forgot password', // Subject line
-                html: `<p>update ur password here <a href="http://localhost:3000/update-password">${randomString}</a> </p>`// plain text body
+                html: `<p>update ur password here <a href="https://optimistic-lamarr-71a0f7.netlify.app/update-password">${randomString}</a> </p>`// plain text body
               };
 
             transporter.sendMail(mailOptions , (err,info)=>{
