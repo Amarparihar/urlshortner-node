@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { MongoClient } = require('mongodb');
-const bcrypt = require('bcrypt')
+const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken');
 const randomstring = require('randomstring');
 const nodeMailer = require('nodemailer'); 
@@ -50,8 +50,8 @@ app.post("/register", async(req,res)=>{
         let db = client.db(DB);
         let data = await db.collection('users').findOne({email:req.body.email})
         if(!data){
-            let salt = await bcrypt.genSalt(10);
-            let hash = await bcrypt.hash(req.body.password,salt)
+            let salt = await bcrypt.genSaltSync(10);
+            let hash = await bcrypt.hashSync(req.body.password,salt)
             req.body.password = hash;
             await db.collection('users').insertOne(req.body);
             res.status(200).json({message:"user registered successfully"});
@@ -74,7 +74,7 @@ app.post("/login", async(req,res)=>{
         let db = client.db(DB);
         let data = await db.collection('users').findOne({email:req.body.email})
         if(data){
-            let isValid = await bcrypt.compare(req.body.password,data.password);
+            let isValid = await bcrypt.compareSync(req.body.password,data.password);
             if(isValid){
                 let token = jwt.sign({user_id:data._id},process.env.JWT_KEY);
                 console.log(token);
@@ -138,8 +138,8 @@ app.put('/update-password', async(req,res)=>{
       
         if(data.email){
             if(req.body.password == req.body.confirmPassword){
-                let salt = await bcrypt.genSalt(10);
-                let hash = await bcrypt.hash(req.body.password,salt);
+                let salt = await bcrypt.genSaltSync(10);
+                let hash = await bcrypt.hashSync(req.body.password,salt);
                 req.body.password = hash;
                 
                 await db.collection('users').findOneAndUpdate({email:req.body.email},{$set:{password:req.body.password}});
