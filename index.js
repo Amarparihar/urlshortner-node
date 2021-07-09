@@ -7,6 +7,8 @@ const jwt = require('jsonwebtoken');
 const randomstring = require('randomstring');
 const nodeMailer = require('nodemailer'); 
 
+const authorized = require('./authentication');
+
 const Port = process.env.PORT || 5000;
 const app = express();
 
@@ -26,7 +28,7 @@ const transporter = nodeMailer.createTransport({
     }
 });
 
-app.get("/",async(req,res)=>{
+app.get('/', async(req,res)=>{
     try {
         let client = await MongoClient.connect(URL);
         let db = client.db(DB);
@@ -44,7 +46,25 @@ app.get("/",async(req,res)=>{
     }
 })
 
-app.post("/register", async(req,res)=>{
+app.get('/urldb', async(req,res)=>{
+    try {
+        let client = await MongoClient.connect(URL);
+        let db = client.db(DB);
+        let data = await db.collection('url').find().toArray();
+        if(data){
+            res.status(200).json(data);
+        }else{
+            res.status(404).json({message:"Data Not Found"});
+        }
+       await client.close();
+        
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(500);
+    }
+})
+
+app.post('/register', async(req,res)=>{
     try {
         let client = await MongoClient.connect(URL);
         let db = client.db(DB);
@@ -68,7 +88,7 @@ app.post("/register", async(req,res)=>{
     }
 })
 
-app.post("/login", async(req,res)=>{
+app.post('/login', async(req,res)=>{
     try {
         let client = await MongoClient.connect(URL);
         let db = client.db(DB);
@@ -135,7 +155,6 @@ app.put('/update-password', async(req,res)=>{
         let client = await MongoClient.connect(URL);
         let db = client.db(DB);
         let data = await db.collection('users').findOne({email:req.body.email});
-      
         if(data.email){
             if(req.body.password == req.body.confirmPassword){
                 let salt = await bcrypt.genSaltSync(10);
@@ -159,7 +178,61 @@ app.put('/update-password', async(req,res)=>{
     }
 })
 
+app.post('/longurl/:id',authorized,async(req,res)=>{
+    try {
+        let client = await MongoClient.connect(URL);
+        let db = client.db(DB);
+        let data = await db.collection('users').findOne({email:req.params.id});
+        if(data){  
+            let shorturl = randomstring.generate({length:10,charset:'alphabetic'});
+            db.collection('url').insertOne({longURL:req.body.longURL,shortURL:shorturl , email:req.params.id});
+            res.status(200).json({message:'Url shorted', shorturl});
 
+        }else{
+            res.status(404).json({message:'Invalid ID'});
+        }
+        await client.close();
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(500);
+    }
+})
+
+
+app.get('/shorturl/:id',async(req,res)=>{
+    try {
+        let client = await MongoClient.connect(URL);
+        let db = client.db(DB);
+        let data = await db.collection('url').find({email:req.params.id}).toArray();
+        if(data){
+            console.log(data);
+            res.status(200).json(data);
+            
+            await client.close();
+
+        }else{
+            res.status(404).json({message:'Invalid ID'});
+        }
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(500);
+    }
+})
+
+
+app.delete("/delete", authorized,async (req,res)=>{
+    try {
+        let client = await MongoClient.connect(URL);
+        let db = client.db(DB);
+        await db.collection('url').deleteMany({});
+        res.status(200).json({message:'data deleted'});
+        client.close();
+        
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({message:'Internal Server Error'})
+    }
+})
 
 
 app.listen(Port,()=>console.log('The Server Is Running on Port:',Port));
